@@ -13,7 +13,7 @@ AFRAME.registerSystem('mindar-image-system', {
   tick: function() {
   },
 
-  setup: function({imageTargetSrc, maxTrack, showStats, uiLoading, uiScanning, uiError, missTolerance, warmupTolerance, filterMinCF, filterBeta}) {
+  setup: function({imageTargetSrc, maxTrack, showStats, uiLoading, uiScanning, uiError, missTolerance, warmupTolerance, filterMinCF, filterBeta, idealVideoWidth, idealVideoHeight}) {
     this.imageTargetSrc = imageTargetSrc;
     this.maxTrack = maxTrack;
     this.filterMinCF = filterMinCF;
@@ -22,6 +22,8 @@ AFRAME.registerSystem('mindar-image-system', {
     this.warmupTolerance = warmupTolerance;
     this.showStats = showStats;
     this.ui = new UI({uiLoading, uiScanning, uiError});
+    this.idealVideoWidth = idealVideoWidth;
+    this.idealVideoHeight = idealVideoHeight;
   },
 
   registerAnchor: function(el, targetIndex) {
@@ -87,11 +89,19 @@ AFRAME.registerSystem('mindar-image-system', {
       return;
     }
 
-    navigator.mediaDevices.getUserMedia({audio: false, video: {
-      facingMode: 'environment',
-    }}).then((stream) => {
+    var videoConstraints = {
+      facingMode: 'environment'
+    }
+    if(this.idealVideoWidth) {
+      videoConstraints.width = {ideal: this.idealVideoWidth};
+    }
+    if(this.idealVideoHeight) {
+      videoConstraints.height = {ideal: this.idealVideoHeight};
+    }
+
+    navigator.mediaDevices.getUserMedia({audio: false, video: videoConstraints})
+    .then((stream) => {
       this.video.addEventListener( 'loadedmetadata', () => {
-        //console.log("video ready...", this.video);
         this.video.setAttribute('width', this.video.videoWidth);
         this.video.setAttribute('height', this.video.videoHeight);
         this._startAR();
@@ -214,6 +224,8 @@ AFRAME.registerComponent('mindar-image', {
     uiLoading: {type: 'string', default: 'yes'},
     uiScanning: {type: 'string', default: 'yes'},
     uiError: {type: 'string', default: 'yes'},
+    idealVideoWidth: {type: 'number', default: undefined},
+    idealVideoHeight: {type: 'number', default: undefined},
   },
 
   init: function() {
@@ -230,6 +242,8 @@ AFRAME.registerComponent('mindar-image', {
       uiLoading: this.data.uiLoading,
       uiScanning: this.data.uiScanning,
       uiError: this.data.uiError,
+      idealVideoWidth: this.data.idealVideoWidth,
+      idealVideoHeight: this.data.idealVideoHeight
     });
     if (this.data.autoStart) {
       this.el.sceneEl.addEventListener('renderstart', () => {
